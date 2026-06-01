@@ -2,6 +2,9 @@
 
 The project is designed for defensive reverse engineering, malware triage, exploitability review, and binary metadata inspection.
 
+<img width="2098" height="1258" alt="image" src="https://github.com/user-attachments/assets/2b722ea5-24d2-4363-ab74-64b043aaaf69" />
+
+
 ## Features
 
 - Binary loading for PE, ELF, Mach-O, and raw files.
