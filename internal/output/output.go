@@ -247,7 +247,28 @@ func writeDeepAnalysis(root string, deep api.DeepAnalysis) error {
 	_ = writeJSON(root, "deep/graph_analysis.json", deep.Graph)
 	_ = writeJSON(root, "deep/fingerprints.json", deep.Fingerprints)
 	_ = writeJSON(root, "deep/signatures.json", deep.Signatures)
+	_ = writeJSON(root, "deep/function_tags.json", deep.FunctionTags)
+	_ = writeJSON(root, "deep/annotations.json", deep.Annotations)
+	_ = writeJSON(root, "deep/jump_tables.json", deep.JumpTables)
+	_ = writeJSON(root, "deep/api_call_sites.json", deep.APICallSites)
+	_ = writeJSON(root, "deep/string_references.json", deep.StringRefs)
+	_ = writeJSON(root, "deep/stack_frames.json", deep.StackFrames)
+	_ = writeJSON(root, "deep/basic_block_notes.json", deep.BlockNotes)
+	_ = writeJSON(root, "deep/decompiler_hints.json", deep.DecompilerHints)
+	_ = writeJSON(root, "deep/function_clusters.json", deep.FunctionClusters)
+	_ = writeJSON(root, "deep/hot_paths.json", deep.HotPaths)
+	_ = writeJSON(root, "deep/patch_points.json", deep.PatchPoints)
+	_ = writeJSON(root, "deep/calling_conventions.json", deep.CallingConventions)
+	_ = writeJSON(root, "deep/unpacking_hints.json", deep.UnpackingHints)
+	_ = writeJSON(root, "deep/type_hints.json", deep.TypeHints)
+	_ = writeJSON(root, "deep/timeline.json", deep.Timeline)
+	_ = writeJSON(root, "deep/capability_matrix.json", deep.CapabilityMatrix)
+	_ = writeJSON(root, "deep/anti_analysis.json", deep.AntiAnalysis)
+	_ = writeJSON(root, "deep/crypto_indicators.json", deep.CryptoIndicators)
+	_ = writeJSON(root, "deep/persistence_indicators.json", deep.Persistence)
+	_ = writeJSON(root, "deep/syscall_indicators.json", deep.SyscallIndicators)
 	_ = writeJSON(root, "project/retract_project.json", deep.Project)
+	_ = writeREToolExports(root, deep.Project)
 	_ = writeMemoryMapCSV(root, deep.MemoryMap)
 	_ = writeBytePatternsCSV(root, deep.BytePatterns)
 	_ = writeAPISurfaceCSV(root, deep.APISurface)
@@ -259,6 +280,26 @@ func writeDeepAnalysis(root string, deep api.DeepAnalysis) error {
 	_ = writeDataFlowCSV(root, deep.DataFlow)
 	_ = writeFunctionFingerprintsCSV(root, deep.Fingerprints)
 	_ = writeSignatureMatchesCSV(root, deep.Signatures)
+	_ = writeFunctionTagsCSV(root, deep.FunctionTags)
+	_ = writeAnnotationsCSV(root, deep.Annotations)
+	_ = writeJumpTablesCSV(root, deep.JumpTables)
+	_ = writeAPICallSitesCSV(root, deep.APICallSites)
+	_ = writeStringRefsCSV(root, deep.StringRefs)
+	_ = writeStackFramesCSV(root, deep.StackFrames)
+	_ = writeBasicBlockNotesCSV(root, deep.BlockNotes)
+	_ = writeDecompilerHintsCSV(root, deep.DecompilerHints)
+	_ = writeFunctionClustersCSV(root, deep.FunctionClusters)
+	_ = writeHotPathsCSV(root, deep.HotPaths)
+	_ = writePatchPointsCSV(root, deep.PatchPoints)
+	_ = writeCallingConventionsCSV(root, deep.CallingConventions)
+	_ = writeUnpackingHintsCSV(root, deep.UnpackingHints)
+	_ = writeTypeHintsCSV(root, deep.TypeHints)
+	_ = writeTimelineCSV(root, deep.Timeline)
+	_ = writeCapabilityMatrixCSV(root, deep.CapabilityMatrix)
+	_ = writeIndicatorHitsCSV(root, "deep/anti_analysis.csv", deep.AntiAnalysis)
+	_ = writeIndicatorHitsCSV(root, "deep/crypto_indicators.csv", deep.CryptoIndicators)
+	_ = writeIndicatorHitsCSV(root, "deep/persistence_indicators.csv", deep.Persistence)
+	_ = writeIndicatorHitsCSV(root, "deep/syscall_indicators.csv", deep.SyscallIndicators)
 	_ = writeText(root, "deep/analyst_workflow.md", deepMarkdown(deep))
 	return nil
 }
@@ -358,6 +399,189 @@ func writeSignatureMatchesCSV(root string, sigs []api.SignatureMatch) error {
 	return writeCSV(root, "signatures/signature_matches.csv", []string{"name", "kind", "confidence", "severity", "evidence", "tags"}, rows)
 }
 
+func writeFunctionTagsCSV(root string, tags []api.FunctionTag) error {
+	rows := [][]string{}
+	for _, t := range tags {
+		rows = append(rows, []string{t.Function, t.Start, t.Tag, t.Confidence, strings.Join(t.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/function_tags.csv", []string{"function", "start", "tag", "confidence", "evidence"}, rows)
+}
+
+func writeAnnotationsCSV(root string, annotations []api.REAnnotation) error {
+	rows := [][]string{}
+	for _, a := range annotations {
+		rows = append(rows, []string{a.Address, a.Function, a.Kind, a.Severity, a.Text, strings.Join(a.Tags, "; ")})
+	}
+	return writeCSV(root, "deep/annotations.csv", []string{"address", "function", "kind", "severity", "text", "tags"}, rows)
+}
+
+func writeJumpTablesCSV(root string, jumpTables []api.JumpTableCandidate) error {
+	rows := [][]string{}
+	for _, jt := range jumpTables {
+		rows = append(rows, []string{jt.Function, jt.Address, jt.Base, fmt.Sprintf("%d", jt.Entries), jt.Confidence, strings.Join(jt.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/jump_tables.csv", []string{"function", "address", "base", "entries", "confidence", "evidence"}, rows)
+}
+
+func writeAPICallSitesCSV(root string, callSites []api.APICallSite) error {
+	rows := [][]string{}
+	for _, cs := range callSites {
+		rows = append(rows, []string{cs.Function, cs.Address, cs.API, strings.Join(cs.Category, "; "), strings.Join(cs.Arguments, "; "), cs.Confidence, cs.Evidence})
+	}
+	return writeCSV(root, "deep/api_call_sites.csv", []string{"function", "address", "api", "category", "arguments", "confidence", "evidence"}, rows)
+}
+
+func writeStringRefsCSV(root string, refs []api.StringReference) error {
+	rows := [][]string{}
+	for _, ref := range refs {
+		rows = append(rows, []string{ref.Function, ref.Address, fmt.Sprintf("0x%x", ref.Offset), ref.Kind, ref.String, strings.Join(ref.Tags, "; "), ref.Confidence, ref.Evidence})
+	}
+	return writeCSV(root, "deep/string_references.csv", []string{"function", "address", "offset", "kind", "string", "tags", "confidence", "evidence"}, rows)
+}
+
+func writeStackFramesCSV(root string, frames []api.StackFrameLayout) error {
+	rows := [][]string{}
+	for _, frame := range frames {
+		rows = append(rows, []string{frame.Function, fmt.Sprintf("0x%x", frame.FrameSize), fmt.Sprintf("%d", len(frame.Locals)), fmt.Sprintf("%d", len(frame.Arguments)), strings.Join(frame.SavedRegisters, "; "), strings.Join(frame.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/stack_frames.csv", []string{"function", "frame_size", "locals", "arguments", "saved_registers", "evidence"}, rows)
+}
+
+func writeBasicBlockNotesCSV(root string, notes []api.BasicBlockNote) error {
+	rows := [][]string{}
+	for _, note := range notes {
+		rows = append(rows, []string{note.BlockID, note.Start, note.End, note.Kind, note.Severity, note.Text, strings.Join(note.Edges, "; ")})
+	}
+	return writeCSV(root, "deep/basic_block_notes.csv", []string{"block_id", "start", "end", "kind", "severity", "text", "edges"}, rows)
+}
+
+func writeDecompilerHintsCSV(root string, hints []api.DecompilerHint) error {
+	rows := [][]string{}
+	for _, hint := range hints {
+		rows = append(rows, []string{hint.Function, hint.Address, hint.Kind, hint.Hint, hint.Confidence, hint.Evidence})
+	}
+	return writeCSV(root, "deep/decompiler_hints.csv", []string{"function", "address", "kind", "hint", "confidence", "evidence"}, rows)
+}
+
+func writeFunctionClustersCSV(root string, clusters []api.FunctionCluster) error {
+	rows := [][]string{}
+	for _, c := range clusters {
+		rows = append(rows, []string{c.ID, c.Kind, strings.Join(c.Functions, "; "), fmt.Sprintf("%.4f", c.Score), c.Confidence, strings.Join(c.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/function_clusters.csv", []string{"id", "kind", "functions", "score", "confidence", "evidence"}, rows)
+}
+
+func writeHotPathsCSV(root string, paths []api.HotPath) error {
+	rows := [][]string{}
+	for _, p := range paths {
+		rows = append(rows, []string{fmt.Sprintf("%d", p.Rank), p.Function, p.Start, fmt.Sprintf("%d", p.Score), strings.Join(p.Reasons, "; "), strings.Join(p.Artifacts, "; ")})
+	}
+	return writeCSV(root, "deep/hot_paths.csv", []string{"rank", "function", "start", "score", "reasons", "artifacts"}, rows)
+}
+
+func writePatchPointsCSV(root string, points []api.PatchPoint) error {
+	rows := [][]string{}
+	for _, p := range points {
+		rows = append(rows, []string{p.Address, p.Function, p.Kind, p.Bytes, fmt.Sprintf("%d", p.Size), p.Risk, p.Confidence, strings.Join(p.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/patch_points.csv", []string{"address", "function", "kind", "bytes", "size", "risk", "confidence", "evidence"}, rows)
+}
+
+func writeCallingConventionsCSV(root string, guesses []api.CallingConventionGuess) error {
+	rows := [][]string{}
+	for _, g := range guesses {
+		rows = append(rows, []string{g.Function, g.Start, g.Convention, strings.Join(g.ArgumentStorage, "; "), g.ReturnStorage, g.Confidence, strings.Join(g.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/calling_conventions.csv", []string{"function", "start", "convention", "arguments", "return", "confidence", "evidence"}, rows)
+}
+
+func writeUnpackingHintsCSV(root string, hints []api.UnpackingHint) error {
+	rows := [][]string{}
+	for _, h := range hints {
+		rows = append(rows, []string{h.Region, h.Address, h.Kind, h.Priority, strings.Join(h.Actions, "; "), strings.Join(h.Evidence, "; "), h.Confidence})
+	}
+	return writeCSV(root, "deep/unpacking_hints.csv", []string{"region", "address", "kind", "priority", "actions", "evidence", "confidence"}, rows)
+}
+
+func writeTypeHintsCSV(root string, hints []api.TypePropagationHint) error {
+	rows := [][]string{}
+	for _, h := range hints {
+		rows = append(rows, []string{h.Function, h.Address, h.Symbol, h.Type, h.Source, h.Confidence, strings.Join(h.Evidence, "; ")})
+	}
+	return writeCSV(root, "deep/type_hints.csv", []string{"function", "address", "symbol", "type", "source", "confidence", "evidence"}, rows)
+}
+
+func writeTimelineCSV(root string, events []api.AnalysisTimelineEvent) error {
+	rows := [][]string{}
+	for _, e := range events {
+		rows = append(rows, []string{fmt.Sprintf("%d", e.Order), e.Phase, e.Title, e.Detail, e.Severity, strings.Join(e.Artifacts, "; ")})
+	}
+	return writeCSV(root, "deep/timeline.csv", []string{"order", "phase", "title", "detail", "severity", "artifacts"}, rows)
+}
+
+func writeCapabilityMatrixCSV(root string, entries []api.CapabilityMatrixEntry) error {
+	rows := [][]string{}
+	for _, e := range entries {
+		rows = append(rows, []string{e.Capability, fmt.Sprintf("%d", e.Score), strings.Join(e.Signals, "; "), strings.Join(e.Artifacts, "; ")})
+	}
+	return writeCSV(root, "deep/capability_matrix.csv", []string{"capability", "score", "signals", "artifacts"}, rows)
+}
+
+func writeIndicatorHitsCSV(root, rel string, hits []api.IndicatorHit) error {
+	rows := [][]string{}
+	for _, h := range hits {
+		rows = append(rows, []string{h.Kind, h.Name, h.Location, h.Function, h.Severity, h.Confidence, strings.Join(h.Evidence, "; ")})
+	}
+	return writeCSV(root, rel, []string{"kind", "name", "location", "function", "severity", "confidence", "evidence"}, rows)
+}
+
+func writeREToolExports(root string, project api.ProjectDatabase) error {
+	var labels, r2, ghidra, idc strings.Builder
+	idc.WriteString("#include <idc.idc>\n\nstatic main(void) {\n")
+	for _, fn := range project.Functions {
+		if fn.Start == "" {
+			continue
+		}
+		name := safeSymbol(fn.Name)
+		fmt.Fprintf(&labels, "%s %s\n", fn.Start, name)
+		fmt.Fprintf(&r2, "af+ %s %d %s\n", fn.Start, fn.Size, name)
+		fmt.Fprintf(&r2, "f sym.%s = %d @ %s\n", name, fn.Size, fn.Start)
+		fmt.Fprintf(&idc, "  MakeName(%s, \"%s\");\n", idcAddr(fn.Start), idcEscape(name))
+	}
+	for _, label := range project.Labels {
+		if label.Location == "" || label.Name == "" {
+			continue
+		}
+		name := safeSymbol(label.Name)
+		fmt.Fprintf(&labels, "%s %s\n", label.Location, name)
+		fmt.Fprintf(&r2, "f label.%s @ %s\n", name, label.Location)
+		fmt.Fprintf(&idc, "  MakeName(%s, \"%s\");\n", idcAddr(label.Location), idcEscape(name))
+	}
+	for _, comment := range project.Comments {
+		if comment.Location == "" || comment.Value == "" {
+			continue
+		}
+		text := strings.ReplaceAll(comment.Value, "\n", " ")
+		fmt.Fprintf(&r2, "CCu %s @ %s\n", r2Escape(text), comment.Location)
+		fmt.Fprintf(&ghidra, "%s\t%s\t%s\t%s\n", comment.Location, comment.Kind, comment.Name, text)
+		fmt.Fprintf(&idc, "  MakeComm(%s, \"%s\");\n", idcAddr(comment.Location), idcEscape(text))
+	}
+	for _, a := range project.Annotations {
+		if a.Address == "" || a.Text == "" {
+			continue
+		}
+		text := strings.ReplaceAll(a.Text, "\n", " ")
+		fmt.Fprintf(&r2, "CCu %s @ %s\n", r2Escape(text), a.Address)
+		fmt.Fprintf(&ghidra, "%s\t%s\t%s\t%s\n", a.Address, a.Kind, a.Function, text)
+		fmt.Fprintf(&idc, "  MakeComm(%s, \"%s\");\n", idcAddr(a.Address), idcEscape(text))
+	}
+	idc.WriteString("}\n")
+	_ = writeText(root, "project/labels.map", labels.String())
+	_ = writeText(root, "project/rizin_radare2.r2", r2.String())
+	_ = writeText(root, "project/ghidra_bookmarks.tsv", "address\tcategory\tfunction\ttext\n"+ghidra.String())
+	return writeText(root, "project/ida_names_comments.idc", idc.String())
+}
+
 func deepMarkdown(deep api.DeepAnalysis) string {
 	var b strings.Builder
 	b.WriteString("# Deep Analysis Workflow\n\n")
@@ -388,6 +612,73 @@ func deepMarkdown(deep api.DeepAnalysis) string {
 			break
 		}
 		fmt.Fprintf(&b, "- `%s` %s simhash=%s instructions=%d\n", f.Function, f.Start, f.SimHash, f.Instructions)
+	}
+	b.WriteString("\n## Reverse Engineering Workspace\n\n")
+	for i, t := range deep.FunctionTags {
+		if i >= 50 {
+			fmt.Fprintf(&b, "- %d additional function tags omitted from markdown; see `deep/function_tags.csv`.\n", len(deep.FunctionTags)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- `%s` tag=%s confidence=%s evidence=%s\n", t.Function, t.Tag, t.Confidence, strings.Join(t.Evidence, "; "))
+	}
+	for i, jt := range deep.JumpTables {
+		if i >= 25 {
+			fmt.Fprintf(&b, "- %d additional jump-table candidates omitted from markdown; see `deep/jump_tables.csv`.\n", len(deep.JumpTables)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- jump table candidate `%s` at %s confidence=%s evidence=%s\n", jt.Function, jt.Address, jt.Confidence, strings.Join(jt.Evidence, "; "))
+	}
+	b.WriteString("\n## Call Sites and References\n\n")
+	for i, cs := range deep.APICallSites {
+		if i >= 40 {
+			fmt.Fprintf(&b, "- %d additional API call sites omitted from markdown; see `deep/api_call_sites.csv`.\n", len(deep.APICallSites)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- `%s` calls `%s` at %s categories=%s\n", cs.Function, cs.API, cs.Address, strings.Join(cs.Category, ", "))
+	}
+	for i, ref := range deep.StringRefs {
+		if i >= 40 {
+			fmt.Fprintf(&b, "- %d additional string references omitted from markdown; see `deep/string_references.csv`.\n", len(deep.StringRefs)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- `%s` references string at 0x%x from %s: `%s`\n", ref.Function, ref.Offset, ref.Address, ref.String)
+	}
+	b.WriteString("\n## Advanced RE Triage\n\n")
+	for i, path := range deep.HotPaths {
+		if i >= 30 {
+			fmt.Fprintf(&b, "- %d additional hot paths omitted from markdown; see `deep/hot_paths.csv`.\n", len(deep.HotPaths)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- #%d `%s` score=%d reasons=%s\n", path.Rank, path.Function, path.Score, strings.Join(path.Reasons, "; "))
+	}
+	for i, hint := range deep.UnpackingHints {
+		if i >= 30 {
+			fmt.Fprintf(&b, "- %d additional unpacking hints omitted from markdown; see `deep/unpacking_hints.csv`.\n", len(deep.UnpackingHints)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- `%s` %s priority=%s confidence=%s evidence=%s\n", hint.Region, hint.Kind, hint.Priority, hint.Confidence, strings.Join(hint.Evidence, "; "))
+	}
+	for i, cluster := range deep.FunctionClusters {
+		if i >= 20 {
+			fmt.Fprintf(&b, "- %d additional clusters omitted from markdown; see `deep/function_clusters.csv`.\n", len(deep.FunctionClusters)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- cluster `%s` kind=%s functions=%s\n", cluster.ID, cluster.Kind, strings.Join(cluster.Functions, ", "))
+	}
+	b.WriteString("\n## Capability and Indicators\n\n")
+	for i, cap := range deep.CapabilityMatrix {
+		if i >= 30 {
+			fmt.Fprintf(&b, "- %d additional capability rows omitted from markdown; see `deep/capability_matrix.csv`.\n", len(deep.CapabilityMatrix)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- `%s` score=%d signals=%s\n", cap.Capability, cap.Score, strings.Join(cap.Signals, "; "))
+	}
+	for i, hit := range append(append(append(deep.AntiAnalysis, deep.CryptoIndicators...), deep.Persistence...), deep.SyscallIndicators...) {
+		if i >= 40 {
+			b.WriteString("- additional indicators omitted from markdown; see `deep/*_indicators.csv`.\n")
+			break
+		}
+		fmt.Fprintf(&b, "- `%s` %s at %s confidence=%s evidence=%s\n", hit.Kind, hit.Name, hit.Location, hit.Confidence, strings.Join(hit.Evidence, "; "))
 	}
 	return b.String()
 }
@@ -567,10 +858,72 @@ func artifactManifest() map[string]string {
 		"strings/suspicious.txt":               "categorized suspicious strings",
 		"signatures/function_fingerprints.csv": "function-level hashes for matching and diffing",
 		"signatures/signature_matches.csv":     "native signature and capability matches",
+		"deep/function_tags.csv":               "auto tags for leaf, wrapper, parser, no-return, and stack-heavy functions",
+		"deep/annotations.csv":                 "auto comments and analyst notes suitable for import into RE tooling",
+		"deep/jump_tables.csv":                 "indirect branch and dense-branch jump-table candidates",
+		"deep/api_call_sites.csv":              "resolved imported API call sites with likely argument registers",
+		"deep/string_references.csv":           "instruction-to-string/data reference candidates",
+		"deep/stack_frames.csv":                "per-function stack frame summaries with locals and saved registers",
+		"deep/basic_block_notes.csv":           "CFG block notes for terminals, branches, and loop backedges",
+		"deep/decompiler_hints.csv":            "address-level hints for decompiler and manual review",
+		"deep/function_clusters.csv":           "function similarity and shape clusters",
+		"deep/hot_paths.csv":                   "ranked functions for audit and triage",
+		"deep/patch_points.csv":                "branch, call, padding, and breakpoint patch-point candidates",
+		"deep/calling_conventions.csv":         "calling convention and argument storage guesses",
+		"deep/unpacking_hints.csv":             "packer, overlay, loader, and self-modifying-code guidance",
+		"deep/type_hints.csv":                  "propagated type hints from APIs and string references",
+		"deep/timeline.csv":                    "ordered analysis timeline",
+		"deep/capability_matrix.csv":           "scored capability rollup",
+		"deep/anti_analysis.csv":               "anti-debug, sandbox, VM, and tool-detection indicators",
+		"deep/crypto_indicators.csv":           "crypto APIs and constants",
+		"deep/persistence_indicators.csv":      "registry, service, scheduled task, startup, and file persistence hints",
+		"deep/syscall_indicators.csv":          "syscall, interrupt, segment-register, and low-level execution hints",
+		"project/labels.map":                   "address-to-name map for external tooling",
+		"project/rizin_radare2.r2":             "radare2/Rizin command script for labels and comments",
+		"project/ghidra_bookmarks.tsv":         "TSV bookmarks/comments for Ghidra-oriented workflows",
+		"project/ida_names_comments.idc":       "IDC helper script for IDA-style names and comments",
 		"entropy/sliding_entropy.csv":          "sliding-window entropy data",
 		"visuals/entropy_timeline.png":         "entropy visualization",
 		"control_flow/cfg.dot":                 "Graphviz control-flow graph",
 	}
+}
+
+func safeSymbol(name string) string {
+	name = strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
+			return r
+		}
+		return '_'
+	}, name)
+	name = strings.Trim(name, "_")
+	if name == "" {
+		return "unnamed"
+	}
+	return name
+}
+
+func idcAddr(addr string) string {
+	if strings.HasPrefix(addr, "0x") {
+		return addr
+	}
+	return "0x0"
+}
+
+func idcEscape(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	return s
+}
+
+func r2Escape(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strconvQuote(s)
+}
+
+func strconvQuote(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }
 
 func hexPreview(data []byte, maxBytes int) string {

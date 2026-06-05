@@ -164,23 +164,43 @@ func EvidenceIndex(r api.AnalysisReport) string {
 	fmt.Fprintf(&b, "# Evidence Index\n\n")
 	fmt.Fprintf(&b, "| Artifact | Purpose |\n| --- | --- |\n")
 	rows := map[string]string{
-		"`metadata/metadata.json`":        "sample metadata and hashes",
-		"`headers/*.json`":                "parsed PE headers, mitigations, debug/certificate metadata",
-		"`sections/sections.csv`":         "section table with entropy and permissions",
-		"`imports/imports.csv`":           "imported DLLs/functions with categories",
-		"`strings/*.txt`":                 "extracted and categorized strings",
-		"`entropy/sliding_entropy.csv`":   "sliding-window entropy measurements",
-		"`visuals/*.png`":                 "entropy, byte histogram, and section map images",
-		"`disassembly/entry.asm`":         "entry-point linear disassembly",
-		"`control_flow/cfg.dot`":          "Graphviz control-flow graph",
-		"`deep/deep_analysis.json`":       "enterprise deep-analysis rollup",
-		"`deep/analyst_workflow.md`":      "prioritized analyst workflow and API surface",
-		"`deep/memory_map.csv`":           "file and virtual memory map with entropy and notes",
-		"`deep/api_surface.csv`":          "categorized API surface and risk buckets",
-		"`deep/triage_tasks.csv`":         "machine-generated reverse-engineering task list",
-		"`reports/report.json`":           "complete structured report",
-		"`signatures/attack_surface.md`":  "behavior and capability mapping",
-		"`yara_like/indicators.yaralike`": "starter detection rule",
+		"`metadata/metadata.json`":          "sample metadata and hashes",
+		"`headers/*.json`":                  "parsed PE headers, mitigations, debug/certificate metadata",
+		"`sections/sections.csv`":           "section table with entropy and permissions",
+		"`imports/imports.csv`":             "imported DLLs/functions with categories",
+		"`strings/*.txt`":                   "extracted and categorized strings",
+		"`entropy/sliding_entropy.csv`":     "sliding-window entropy measurements",
+		"`visuals/*.png`":                   "entropy, byte histogram, and section map images",
+		"`disassembly/entry.asm`":           "entry-point linear disassembly",
+		"`control_flow/cfg.dot`":            "Graphviz control-flow graph",
+		"`deep/deep_analysis.json`":         "enterprise deep-analysis rollup",
+		"`deep/analyst_workflow.md`":        "prioritized analyst workflow and API surface",
+		"`deep/memory_map.csv`":             "file and virtual memory map with entropy and notes",
+		"`deep/api_surface.csv`":            "categorized API surface and risk buckets",
+		"`deep/triage_tasks.csv`":           "machine-generated reverse-engineering task list",
+		"`deep/function_tags.csv`":          "auto tags for leaf, wrapper, parser, no-return, and stack-heavy functions",
+		"`deep/annotations.csv`":            "auto comments suitable for RE-tool import or analyst notebooks",
+		"`deep/jump_tables.csv`":            "indirect branch and dense-branch jump-table candidates",
+		"`deep/api_call_sites.csv`":         "resolved imported API call sites with likely argument registers",
+		"`deep/string_references.csv`":      "instruction-to-string/data reference candidates",
+		"`deep/stack_frames.csv`":           "per-function stack frame summaries",
+		"`deep/basic_block_notes.csv`":      "CFG notes for terminal blocks, branches, and loop backedges",
+		"`deep/decompiler_hints.csv`":       "address-level hints for manual decompiler review",
+		"`deep/function_clusters.csv`":      "function similarity and shape clusters",
+		"`deep/hot_paths.csv`":              "ranked audit and triage functions",
+		"`deep/patch_points.csv`":           "branch, call, padding, and breakpoint patch-point candidates",
+		"`deep/calling_conventions.csv`":    "calling convention and argument storage guesses",
+		"`deep/unpacking_hints.csv`":        "packer, overlay, loader, and self-modifying-code guidance",
+		"`deep/type_hints.csv`":             "propagated type hints from APIs and string references",
+		"`deep/timeline.csv`":               "ordered analysis events",
+		"`deep/capability_matrix.csv`":      "scored capability rollup",
+		"`deep/anti_analysis.csv`":          "anti-debug, sandbox, VM, and tool-detection indicators",
+		"`deep/crypto_indicators.csv`":      "crypto API and constant indicators",
+		"`deep/persistence_indicators.csv`": "registry, service, scheduled-task, startup, and file persistence hints",
+		"`deep/syscall_indicators.csv`":     "syscall, interrupt, segment-register, and low-level execution hints",
+		"`reports/report.json`":             "complete structured report",
+		"`signatures/attack_surface.md`":    "behavior and capability mapping",
+		"`yara_like/indicators.yaralike`":   "starter detection rule",
 	}
 	for k, v := range rows {
 		fmt.Fprintf(&b, "| %s | %s |\n", k, v)
@@ -286,6 +306,139 @@ func ReverseEngineering(r api.AnalysisReport) string {
 				fmt.Fprintf(&b, "- `%s`\n", field)
 			}
 			b.WriteByte('\n')
+		}
+	}
+	fmt.Fprintf(&b, "\n## Function Tags\n\n")
+	if len(r.DeepAnalysis.FunctionTags) == 0 {
+		b.WriteString("No function tags generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Function | Tag | Confidence | Evidence |\n| --- | --- | --- | --- |\n")
+		for _, t := range r.DeepAnalysis.FunctionTags {
+			fmt.Fprintf(&b, "| `%s` | %s | %s | `%s` |\n", t.Function, t.Tag, t.Confidence, escapeTable(strings.Join(t.Evidence, "; ")))
+		}
+	}
+	fmt.Fprintf(&b, "\n## Jump Table Candidates\n\n")
+	if len(r.DeepAnalysis.JumpTables) == 0 {
+		b.WriteString("No jump-table candidates generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Function | Address | Confidence | Evidence |\n| --- | ---: | --- | --- |\n")
+		for _, jt := range r.DeepAnalysis.JumpTables {
+			fmt.Fprintf(&b, "| `%s` | `%s` | %s | `%s` |\n", jt.Function, jt.Address, jt.Confidence, escapeTable(strings.Join(jt.Evidence, "; ")))
+		}
+	}
+	fmt.Fprintf(&b, "\n## Auto Annotations\n\n")
+	if len(r.DeepAnalysis.Annotations) == 0 {
+		b.WriteString("No auto annotations generated.\n")
+	} else {
+		limitAnnotations := len(r.DeepAnalysis.Annotations)
+		if limitAnnotations > 100 {
+			limitAnnotations = 100
+		}
+		fmt.Fprintf(&b, "| Address | Function | Kind | Severity | Text |\n| --- | --- | --- | --- | --- |\n")
+		for _, a := range r.DeepAnalysis.Annotations[:limitAnnotations] {
+			fmt.Fprintf(&b, "| `%s` | `%s` | %s | %s | `%s` |\n", a.Address, a.Function, a.Kind, a.Severity, escapeTable(a.Text))
+		}
+		if len(r.DeepAnalysis.Annotations) > limitAnnotations {
+			fmt.Fprintf(&b, "\n%d additional annotations omitted from markdown; see `deep/annotations.csv`.\n", len(r.DeepAnalysis.Annotations)-limitAnnotations)
+		}
+	}
+	fmt.Fprintf(&b, "\n## API Call Sites\n\n")
+	if len(r.DeepAnalysis.APICallSites) == 0 {
+		b.WriteString("No imported API call sites resolved from decoded calls.\n")
+	} else {
+		limitCalls := len(r.DeepAnalysis.APICallSites)
+		if limitCalls > 100 {
+			limitCalls = 100
+		}
+		fmt.Fprintf(&b, "| Function | Address | API | Category |\n| --- | ---: | --- | --- |\n")
+		for _, cs := range r.DeepAnalysis.APICallSites[:limitCalls] {
+			fmt.Fprintf(&b, "| `%s` | `%s` | `%s` | %s |\n", cs.Function, cs.Address, escapeTable(cs.API), strings.Join(cs.Category, ", "))
+		}
+		if len(r.DeepAnalysis.APICallSites) > limitCalls {
+			fmt.Fprintf(&b, "\n%d additional API call sites omitted from markdown; see `deep/api_call_sites.csv`.\n", len(r.DeepAnalysis.APICallSites)-limitCalls)
+		}
+	}
+	fmt.Fprintf(&b, "\n## Stack Frames\n\n")
+	if len(r.DeepAnalysis.StackFrames) == 0 {
+		b.WriteString("No stack frame layouts generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Function | Frame | Locals | Args | Saved Registers |\n| --- | ---: | ---: | ---: | --- |\n")
+		for _, sf := range r.DeepAnalysis.StackFrames {
+			fmt.Fprintf(&b, "| `%s` | `0x%x` | %d | %d | %s |\n", sf.Function, sf.FrameSize, len(sf.Locals), len(sf.Arguments), strings.Join(sf.SavedRegisters, ", "))
+		}
+	}
+	fmt.Fprintf(&b, "\n## String Reference Candidates\n\n")
+	if len(r.DeepAnalysis.StringRefs) == 0 {
+		b.WriteString("No instruction-to-string references generated.\n")
+	} else {
+		limitRefs := len(r.DeepAnalysis.StringRefs)
+		if limitRefs > 100 {
+			limitRefs = 100
+		}
+		fmt.Fprintf(&b, "| Function | Address | Offset | String |\n| --- | ---: | ---: | --- |\n")
+		for _, ref := range r.DeepAnalysis.StringRefs[:limitRefs] {
+			fmt.Fprintf(&b, "| `%s` | `%s` | `0x%x` | `%s` |\n", ref.Function, ref.Address, ref.Offset, escapeTable(ref.String))
+		}
+		if len(r.DeepAnalysis.StringRefs) > limitRefs {
+			fmt.Fprintf(&b, "\n%d additional string references omitted from markdown; see `deep/string_references.csv`.\n", len(r.DeepAnalysis.StringRefs)-limitRefs)
+		}
+	}
+	fmt.Fprintf(&b, "\n## Decompiler Hints\n\n")
+	if len(r.DeepAnalysis.DecompilerHints) == 0 {
+		b.WriteString("No decompiler hints generated.\n")
+	} else {
+		limitHints := len(r.DeepAnalysis.DecompilerHints)
+		if limitHints > 100 {
+			limitHints = 100
+		}
+		fmt.Fprintf(&b, "| Function | Address | Kind | Hint |\n| --- | ---: | --- | --- |\n")
+		for _, h := range r.DeepAnalysis.DecompilerHints[:limitHints] {
+			fmt.Fprintf(&b, "| `%s` | `%s` | %s | `%s` |\n", h.Function, h.Address, h.Kind, escapeTable(h.Hint))
+		}
+		if len(r.DeepAnalysis.DecompilerHints) > limitHints {
+			fmt.Fprintf(&b, "\n%d additional decompiler hints omitted from markdown; see `deep/decompiler_hints.csv`.\n", len(r.DeepAnalysis.DecompilerHints)-limitHints)
+		}
+	}
+	fmt.Fprintf(&b, "\n## Advanced RE Triage\n\n")
+	if len(r.DeepAnalysis.HotPaths) == 0 {
+		b.WriteString("No hot-path ranking generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Rank | Function | Score | Reasons |\n| ---: | --- | ---: | --- |\n")
+		for _, p := range r.DeepAnalysis.HotPaths[:minInt(len(r.DeepAnalysis.HotPaths), 50)] {
+			fmt.Fprintf(&b, "| %d | `%s` | %d | `%s` |\n", p.Rank, p.Function, p.Score, escapeTable(strings.Join(p.Reasons, "; ")))
+		}
+	}
+	fmt.Fprintf(&b, "\n## Function Clusters\n\n")
+	if len(r.DeepAnalysis.FunctionClusters) == 0 {
+		b.WriteString("No function clusters generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Cluster | Kind | Confidence | Functions |\n| --- | --- | --- | --- |\n")
+		for _, c := range r.DeepAnalysis.FunctionClusters[:minInt(len(r.DeepAnalysis.FunctionClusters), 50)] {
+			fmt.Fprintf(&b, "| `%s` | %s | %s | `%s` |\n", c.ID, c.Kind, c.Confidence, escapeTable(strings.Join(c.Functions, ", ")))
+		}
+	}
+	fmt.Fprintf(&b, "\n## Patch Points and Unpacking\n\n")
+	if len(r.DeepAnalysis.PatchPoints) == 0 && len(r.DeepAnalysis.UnpackingHints) == 0 {
+		b.WriteString("No patch points or unpacking hints generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Kind | Address/Region | Risk/Priority | Evidence |\n| --- | --- | --- | --- |\n")
+		for _, p := range r.DeepAnalysis.PatchPoints[:minInt(len(r.DeepAnalysis.PatchPoints), 60)] {
+			fmt.Fprintf(&b, "| %s | `%s` | %s | `%s` |\n", p.Kind, p.Address, p.Risk, escapeTable(strings.Join(p.Evidence, "; ")))
+		}
+		for _, h := range r.DeepAnalysis.UnpackingHints[:minInt(len(r.DeepAnalysis.UnpackingHints), 40)] {
+			fmt.Fprintf(&b, "| %s | `%s` | %s | `%s` |\n", h.Kind, h.Region, h.Priority, escapeTable(strings.Join(h.Evidence, "; ")))
+		}
+	}
+	fmt.Fprintf(&b, "\n## Calling Conventions and Type Hints\n\n")
+	if len(r.DeepAnalysis.CallingConventions) == 0 && len(r.DeepAnalysis.TypeHints) == 0 {
+		b.WriteString("No calling convention or propagated type hints generated.\n")
+	} else {
+		fmt.Fprintf(&b, "| Function/Symbol | Kind | Value | Confidence |\n| --- | --- | --- | --- |\n")
+		for _, cc := range r.DeepAnalysis.CallingConventions[:minInt(len(r.DeepAnalysis.CallingConventions), 60)] {
+			fmt.Fprintf(&b, "| `%s` | calling convention | `%s %s` | %s |\n", cc.Function, cc.Convention, strings.Join(cc.ArgumentStorage, ", "), cc.Confidence)
+		}
+		for _, th := range r.DeepAnalysis.TypeHints[:minInt(len(r.DeepAnalysis.TypeHints), 60)] {
+			fmt.Fprintf(&b, "| `%s` | type hint | `%s` | %s |\n", th.Symbol, th.Type, th.Confidence)
 		}
 	}
 	fmt.Fprintf(&b, "\n## Cross Reference Samples\n\n")
@@ -498,6 +651,13 @@ func trim(s string, n int) string {
 		return s
 	}
 	return s[:n-3] + "..."
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 type countPair struct {

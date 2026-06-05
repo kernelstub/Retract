@@ -74,6 +74,7 @@ type ViewID =
   | "functions"
   | "types"
   | "xrefs"
+  | "reworkspace"
   | "signatures"
   | "project"
   | "vulns"
@@ -110,6 +111,7 @@ const views: Record<ViewID, { title: string; icon: any; group: string; descripti
   functions: { title: "Functions", icon: Cpu, group: "Code", description: "Function metrics and audit priority" },
   types: { title: "Types", icon: Braces, group: "Code", description: "Recovered variables, structs, and type hints" },
   xrefs: { title: "References", icon: Waypoints, group: "Code", description: "Code, data, import, and string references" },
+  reworkspace: { title: "RE Workspace", icon: Radar, group: "Code", description: "Hot paths, patch points, call sites, type hints, and unpacking guidance" },
   hex: { title: "Hex Editor", icon: Hexagon, group: "Binary", description: "Hex, ASCII, bookmarks, and address mappings" },
   pe: { title: "Binary Explorer", icon: ListTree, group: "Binary", description: "Headers, sections, TLS, relocations, and certificates" },
   resources: { title: "Resources", icon: Database, group: "Binary", description: "Resources, debug directory, TLS, and certificates" },
@@ -413,6 +415,7 @@ function ViewSwitch(props: { active: ViewID; report: Report; source: string; asm
     case "functions": return <FunctionsView report={props.report} />;
     case "types": return <TypesView report={props.report} />;
     case "xrefs": return <XrefsView report={props.report} />;
+    case "reworkspace": return <REWorkspaceView report={props.report} />;
     case "signatures": return <SignaturesView report={props.report} />;
     case "project": return <ProjectView report={props.report} />;
     case "vulns": return <VulnsView report={props.report} />;
@@ -455,7 +458,7 @@ function OverviewView({ report, openView }: { report: Report; openView: (id: Vie
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border p-3"><CardTitle>Quick Actions</CardTitle></CardHeader>
           <CardContent className="grid gap-2 p-3">
-            {(["disassembly", "decompiler", "hex", "graph", "signatures", "project", "vulns"] as ViewID[]).map((id) => {
+            {(["disassembly", "decompiler", "reworkspace", "hex", "graph", "signatures", "project", "vulns"] as ViewID[]).map((id) => {
               const Icon = views[id].icon;
               return <Button key={id} variant="outline" className="justify-start" onClick={() => openView(id)}><Icon className="h-4 w-4" />Open {views[id].title}</Button>;
             })}
@@ -544,7 +547,30 @@ function TypesView({ report }: { report: Report }) {
 }
 
 function XrefsView({ report }: { report: Report }) {
-  return <DataTable headers={["From", "To", "Kind", "Evidence"]} rows={(report.xrefs ?? []).map((x) => [x.from, x.to, x.kind, x.evidence])} />;
+  const deep = report.deep_analysis ?? {};
+  return <GridTables tables={[
+    { headers: ["From", "To", "Kind", "Evidence"], rows: (report.xrefs ?? []).map((x) => [x.from, x.to, x.kind, x.evidence]) },
+    { headers: ["Function", "Address", "Offset", "String", "Tags"], rows: (deep.string_references ?? []).map((r: any) => [r.function, r.address, hex(r.offset), r.string, (r.tags ?? []).join(", ")]) }
+  ]} />;
+}
+
+function REWorkspaceView({ report }: { report: Report }) {
+  const deep = report.deep_analysis ?? {};
+  return (
+    <div className="grid h-full min-h-0 gap-3 overflow-auto xl:grid-cols-2">
+      <DataTable headers={["Rank", "Function", "Start", "Score", "Reasons"]} rows={(deep.hot_paths ?? []).map((p: any) => [p.rank, p.function, p.start, p.score, (p.reasons ?? []).join("; ")])} />
+      <DataTable headers={["Address", "Function", "Kind", "Risk", "Bytes", "Evidence"]} rows={(deep.patch_points ?? []).map((p: any) => [p.address, p.function, p.kind, p.risk, p.bytes, (p.evidence ?? []).join("; ")])} />
+      <DataTable headers={["Function", "Address", "API", "Category", "Arguments"]} rows={(deep.api_call_sites ?? []).map((c: any) => [c.function, c.address, c.api, (c.category ?? []).join(", "), (c.arguments ?? []).join(", ")])} />
+      <DataTable headers={["Function", "Start", "Convention", "Arguments", "Return", "Confidence"]} rows={(deep.calling_conventions ?? []).map((c: any) => [c.function, c.start, c.convention, (c.argument_storage ?? []).join(", "), c.return_storage, c.confidence])} />
+      <DataTable headers={["Cluster", "Kind", "Confidence", "Functions", "Evidence"]} rows={(deep.function_clusters ?? []).map((c: any) => [c.id, c.kind, c.confidence, (c.functions ?? []).join(", "), (c.evidence ?? []).join("; ")])} />
+      <DataTable headers={["Region", "Address", "Kind", "Priority", "Actions", "Evidence"]} rows={(deep.unpacking_hints ?? []).map((u: any) => [u.region, u.address, u.kind, u.priority, (u.actions ?? []).join("; "), (u.evidence ?? []).join("; ")])} />
+      <DataTable headers={["Function", "Address", "Symbol", "Type", "Source", "Confidence"]} rows={(deep.type_hints ?? []).map((t: any) => [t.function, t.address, t.symbol, t.type, t.source, t.confidence])} />
+      <DataTable headers={["Function", "Address", "Kind", "Hint", "Confidence"]} rows={(deep.decompiler_hints ?? []).map((h: any) => [h.function, h.address, h.kind, h.hint, h.confidence])} />
+      <DataTable headers={["Order", "Phase", "Title", "Severity", "Detail"]} rows={(deep.timeline ?? []).map((e: any) => [e.order, e.phase, e.title, e.severity, e.detail])} />
+      <DataTable headers={["Capability", "Score", "Signals", "Artifacts"]} rows={(deep.capability_matrix ?? []).map((c: any) => [c.capability, c.score, (c.signals ?? []).join("; "), (c.artifacts ?? []).join("; ")])} />
+      <DataTable headers={["Kind", "Name", "Location", "Function", "Severity", "Evidence"]} rows={[...(deep.anti_analysis ?? []), ...(deep.crypto_indicators ?? []), ...(deep.persistence_indicators ?? []), ...(deep.syscall_indicators ?? [])].map((h: any) => [h.kind, h.name, h.location, h.function, h.severity, (h.evidence ?? []).join("; ")])} />
+    </div>
+  );
 }
 
 function SignaturesView({ report }: { report: Report }) {
@@ -561,7 +587,11 @@ function ProjectView({ report }: { report: Report }) {
     { headers: ["Kind", "Name", "Value", "Location", "Tags"], rows: (project.symbols ?? []).map((s: any) => [s.kind, s.name, s.value, s.location, (s.tags ?? []).join(", ")]) },
     { headers: ["Kind", "Name", "Value", "Location", "Tags"], rows: (project.labels ?? []).map((s: any) => [s.kind, s.name, s.value, s.location, (s.tags ?? []).join(", ")]) },
     { headers: ["Kind", "Name", "Comment", "Location", "Tags"], rows: (project.comments ?? []).map((s: any) => [s.kind, s.name, s.value, s.location, (s.tags ?? []).join(", ")]) },
-    { headers: ["From", "To", "Kind", "Evidence"], rows: (project.xrefs ?? []).map((x: any) => [x.from, x.to, x.kind, x.evidence]) }
+    { headers: ["From", "To", "Kind", "Evidence"], rows: (project.xrefs ?? []).map((x: any) => [x.from, x.to, x.kind, x.evidence]) },
+    { headers: ["Function", "Tag", "Confidence", "Evidence"], rows: (project.function_tags ?? []).map((t: any) => [t.function, t.tag, t.confidence, (t.evidence ?? []).join("; ")]) },
+    { headers: ["Rank", "Function", "Score", "Reasons"], rows: (project.hot_paths ?? []).map((p: any) => [p.rank, p.function, p.score, (p.reasons ?? []).join("; ")]) },
+    { headers: ["Address", "Function", "Kind", "Risk"], rows: (project.patch_points ?? []).map((p: any) => [p.address, p.function, p.kind, p.risk]) },
+    { headers: ["Symbol", "Type", "Source", "Function"], rows: (project.type_hints ?? []).map((t: any) => [t.symbol, t.type, t.source, t.function]) }
   ]} />;
 }
 
@@ -575,7 +605,11 @@ function DeepView({ report }: { report: Report }) {
     { headers: ["Task", "Priority", "Why"], rows: (deep.triage_tasks ?? []).map((t: any) => [t.title, t.priority, t.why]) },
     { headers: ["API Category", "Risk", "Count", "DLLs"], rows: (deep.api_surface ?? []).map((a: any) => [a.category, a.risk, a.count, (a.dlls ?? []).join(", ")]) },
     { headers: ["Memory", "Kind", "Offset", "Size", "Entropy"], rows: (deep.memory_map ?? []).map((m: any) => [m.name, m.kind, hex(m.file_offset), m.file_size, Number(m.entropy ?? 0).toFixed(2)]) },
-    { headers: ["Source", "Sink", "Severity", "Reason"], rows: (deep.data_flow?.taint_traces ?? []).map((t: any) => [t.source, t.sink, t.severity, t.reason]) }
+    { headers: ["Source", "Sink", "Severity", "Reason"], rows: (deep.data_flow?.taint_traces ?? []).map((t: any) => [t.source, t.sink, t.severity, t.reason]) },
+    { headers: ["Block", "Kind", "Severity", "Text"], rows: (deep.basic_block_notes ?? []).map((n: any) => [n.block_id, n.kind, n.severity, n.text]) },
+    { headers: ["Function", "Frame", "Locals", "Args", "Saved"], rows: (deep.stack_frames ?? []).map((s: any) => [s.function, hex(s.frame_size), (s.locals ?? []).length, (s.arguments ?? []).length, (s.saved_registers ?? []).join(", ")]) },
+    { headers: ["Capability", "Score", "Signals"], rows: (deep.capability_matrix ?? []).map((c: any) => [c.capability, c.score, (c.signals ?? []).join("; ")]) },
+    { headers: ["Phase", "Title", "Severity", "Detail"], rows: (deep.timeline ?? []).map((e: any) => [e.phase, e.title, e.severity, e.detail]) }
   ]} />;
 }
 
@@ -612,6 +646,12 @@ function Inspector({ report, active, open, onToggle }: { report: Report; active:
         <KeyValue label="Search Index" value={String(deep.search_index?.length ?? 0)} />
         <KeyValue label="Project Symbols" value={String(deep.project?.symbols?.length ?? 0)} />
         <KeyValue label="Fingerprints" value={String(deep.fingerprints?.length ?? 0)} />
+        <KeyValue label="Hot Paths" value={String(deep.hot_paths?.length ?? 0)} />
+        <KeyValue label="Patch Points" value={String(deep.patch_points?.length ?? 0)} />
+        <KeyValue label="API Call Sites" value={String(deep.api_call_sites?.length ?? 0)} />
+        <KeyValue label="Type Hints" value={String(deep.type_hints?.length ?? 0)} />
+        <KeyValue label="Indicators" value={String((deep.anti_analysis?.length ?? 0) + (deep.crypto_indicators?.length ?? 0) + (deep.persistence_indicators?.length ?? 0) + (deep.syscall_indicators?.length ?? 0))} />
+        <KeyValue label="Capabilities" value={String(deep.capability_matrix?.length ?? 0)} />
         <div>
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider">Capabilities</div>
           <div className="flex flex-wrap gap-1">{(report.capabilities ?? []).slice(0, 16).map((cap) => <Badge key={cap}>{cap}</Badge>)}</div>
@@ -631,8 +671,8 @@ function BottomDock({ report, searchRows, open, onToggle }: { report: Report; se
       {open && (
         <div className="grid min-h-0 flex-1 gap-3 overflow-auto p-3 xl:grid-cols-3">
           <PanelList title="Problems" rows={(report.vulnerabilities ?? []).slice(0, 10).map((v) => [v.severity, v.title])} />
-          <PanelList title="Search Results" rows={searchRows.slice(0, 10).map((r) => [r[0], r[1]])} />
-          <PanelList title="Detections" rows={(report.deep_analysis?.signatures ?? []).slice(0, 10).map((s: any) => [s.kind, s.name])} />
+          <PanelList title="Hot Paths" rows={(report.deep_analysis?.hot_paths ?? []).slice(0, 10).map((p: any) => [`#${p.rank} ${p.score}`, p.function])} />
+          <PanelList title="Detections" rows={[...(report.deep_analysis?.unpacking_hints ?? []), ...(report.deep_analysis?.anti_analysis ?? []), ...(report.deep_analysis?.persistence_indicators ?? [])].slice(0, 10).map((s: any) => [s.priority ?? s.severity ?? s.kind, `${s.kind} ${s.region ?? s.name ?? ""}`])} />
         </div>
       )}
     </div>
@@ -834,6 +874,15 @@ function globalRows(report: Report | null, q: string) {
   for (const e of report.deep_analysis?.search_index ?? []) rows.push([e.kind, e.name, e.value, e.location]);
   for (const s of report.deep_analysis?.signatures ?? []) rows.push(["signature", s.name, `${s.kind} ${s.confidence}`, (s.evidence ?? []).join("; ")]);
   for (const f of report.deep_analysis?.fingerprints ?? []) rows.push(["fingerprint", f.function, f.simhash, f.start]);
+  for (const p of report.deep_analysis?.hot_paths ?? []) rows.push(["hot-path", p.function, `score ${p.score}`, (p.reasons ?? []).join("; ")]);
+  for (const p of report.deep_analysis?.patch_points ?? []) rows.push(["patch-point", p.address, `${p.kind} ${p.risk}`, p.function]);
+  for (const c of report.deep_analysis?.api_call_sites ?? []) rows.push(["api-call", c.api, c.function, c.address]);
+  for (const c of report.deep_analysis?.function_clusters ?? []) rows.push(["cluster", c.id, c.kind, (c.functions ?? []).join(", ")]);
+  for (const u of report.deep_analysis?.unpacking_hints ?? []) rows.push(["unpack", u.region, `${u.priority} ${u.kind}`, (u.evidence ?? []).join("; ")]);
+  for (const t of report.deep_analysis?.type_hints ?? []) rows.push(["type-hint", t.symbol, t.type, t.source]);
+  for (const c of report.deep_analysis?.capability_matrix ?? []) rows.push(["capability", c.capability, `score ${c.score}`, (c.signals ?? []).join("; ")]);
+  for (const e of report.deep_analysis?.timeline ?? []) rows.push(["timeline", e.title, e.phase, e.detail]);
+  for (const h of [...(report.deep_analysis?.anti_analysis ?? []), ...(report.deep_analysis?.crypto_indicators ?? []), ...(report.deep_analysis?.persistence_indicators ?? []), ...(report.deep_analysis?.syscall_indicators ?? [])]) rows.push(["indicator", h.name, h.kind, (h.evidence ?? []).join("; ")]);
   for (const v of report.vulnerabilities ?? []) rows.push(["vuln", v.id, v.title, v.evidence]);
   if (!q.trim()) return rows;
   const needle = q.toLowerCase();

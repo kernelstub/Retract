@@ -283,6 +283,166 @@ type SignatureMatch struct {
 	Tags       []string `json:"tags,omitempty"`
 }
 
+type FunctionTag struct {
+	Function   string   `json:"function"`
+	Start      string   `json:"start,omitempty"`
+	Tag        string   `json:"tag"`
+	Confidence string   `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+type REAnnotation struct {
+	Address  string   `json:"address,omitempty"`
+	Function string   `json:"function,omitempty"`
+	Kind     string   `json:"kind"`
+	Text     string   `json:"text"`
+	Severity string   `json:"severity,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
+}
+
+type JumpTableCandidate struct {
+	Function   string   `json:"function"`
+	Address    string   `json:"address"`
+	Base       string   `json:"base,omitempty"`
+	Entries    int      `json:"entries,omitempty"`
+	Confidence string   `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+type APICallSite struct {
+	Function   string   `json:"function"`
+	Address    string   `json:"address"`
+	API        string   `json:"api"`
+	Category   []string `json:"category,omitempty"`
+	Arguments  []string `json:"arguments,omitempty"`
+	Confidence string   `json:"confidence"`
+	Evidence   string   `json:"evidence,omitempty"`
+}
+
+type StringReference struct {
+	Function   string   `json:"function,omitempty"`
+	Address    string   `json:"address,omitempty"`
+	String     string   `json:"string"`
+	Offset     int      `json:"offset"`
+	Kind       string   `json:"kind"`
+	Tags       []string `json:"tags,omitempty"`
+	Confidence string   `json:"confidence"`
+	Evidence   string   `json:"evidence,omitempty"`
+}
+
+type StackFrameLayout struct {
+	Function       string             `json:"function"`
+	FrameSize      int                `json:"frame_size,omitempty"`
+	Locals         []InferredVariable `json:"locals,omitempty"`
+	Arguments      []InferredVariable `json:"arguments,omitempty"`
+	SavedRegisters []string           `json:"saved_registers,omitempty"`
+	Evidence       []string           `json:"evidence,omitempty"`
+}
+
+type BasicBlockNote struct {
+	BlockID  string   `json:"block_id"`
+	Start    string   `json:"start"`
+	End      string   `json:"end"`
+	Kind     string   `json:"kind"`
+	Text     string   `json:"text"`
+	Severity string   `json:"severity,omitempty"`
+	Edges    []string `json:"edges,omitempty"`
+}
+
+type DecompilerHint struct {
+	Function   string `json:"function"`
+	Address    string `json:"address"`
+	Kind       string `json:"kind"`
+	Hint       string `json:"hint"`
+	Confidence string `json:"confidence"`
+	Evidence   string `json:"evidence,omitempty"`
+}
+
+type FunctionCluster struct {
+	ID         string   `json:"id"`
+	Kind       string   `json:"kind"`
+	Functions  []string `json:"functions"`
+	Score      float64  `json:"score,omitempty"`
+	Confidence string   `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+type HotPath struct {
+	Rank      int      `json:"rank"`
+	Function  string   `json:"function"`
+	Start     string   `json:"start"`
+	Score     int      `json:"score"`
+	Reasons   []string `json:"reasons,omitempty"`
+	Artifacts []string `json:"artifacts,omitempty"`
+}
+
+type PatchPoint struct {
+	Address    string   `json:"address"`
+	Function   string   `json:"function,omitempty"`
+	Kind       string   `json:"kind"`
+	Bytes      string   `json:"bytes,omitempty"`
+	Size       int      `json:"size,omitempty"`
+	Risk       string   `json:"risk,omitempty"`
+	Confidence string   `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+type CallingConventionGuess struct {
+	Function        string   `json:"function"`
+	Start           string   `json:"start"`
+	Convention      string   `json:"convention"`
+	ArgumentStorage []string `json:"argument_storage,omitempty"`
+	ReturnStorage   string   `json:"return_storage,omitempty"`
+	Confidence      string   `json:"confidence"`
+	Evidence        []string `json:"evidence,omitempty"`
+}
+
+type UnpackingHint struct {
+	Region     string   `json:"region"`
+	Address    string   `json:"address,omitempty"`
+	Kind       string   `json:"kind"`
+	Priority   string   `json:"priority"`
+	Actions    []string `json:"actions,omitempty"`
+	Evidence   []string `json:"evidence,omitempty"`
+	Confidence string   `json:"confidence"`
+}
+
+type TypePropagationHint struct {
+	Function   string   `json:"function,omitempty"`
+	Address    string   `json:"address,omitempty"`
+	Symbol     string   `json:"symbol"`
+	Type       string   `json:"type"`
+	Source     string   `json:"source"`
+	Confidence string   `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+type AnalysisTimelineEvent struct {
+	Order     int      `json:"order"`
+	Phase     string   `json:"phase"`
+	Title     string   `json:"title"`
+	Detail    string   `json:"detail,omitempty"`
+	Artifacts []string `json:"artifacts,omitempty"`
+	Severity  string   `json:"severity,omitempty"`
+}
+
+type CapabilityMatrixEntry struct {
+	Capability string   `json:"capability"`
+	Score      int      `json:"score"`
+	Signals    []string `json:"signals,omitempty"`
+	Artifacts  []string `json:"artifacts,omitempty"`
+}
+
+type IndicatorHit struct {
+	Kind       string   `json:"kind"`
+	Name       string   `json:"name"`
+	Location   string   `json:"location,omitempty"`
+	Function   string   `json:"function,omitempty"`
+	Severity   string   `json:"severity,omitempty"`
+	Confidence string   `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
 type SearchEntry struct {
 	Kind     string   `json:"kind"`
 	Name     string   `json:"name"`
@@ -360,37 +520,77 @@ type GraphAnalysis struct {
 }
 
 type ProjectDatabase struct {
-	SchemaVersion int                   `json:"schema_version"`
-	CaseID        string                `json:"case_id,omitempty"`
-	Sample        FileMetadata          `json:"sample"`
-	Functions     []Function            `json:"functions,omitempty"`
-	Symbols       []SearchEntry         `json:"symbols,omitempty"`
-	Types         []InferredType        `json:"types,omitempty"`
-	Structs       []StructCandidate     `json:"structs,omitempty"`
-	Labels        []SearchEntry         `json:"labels,omitempty"`
-	Comments      []SearchEntry         `json:"comments,omitempty"`
-	Xrefs         []Xref                `json:"xrefs,omitempty"`
-	Graph         GraphAnalysis         `json:"graph"`
-	Fingerprints  []FunctionFingerprint `json:"fingerprints,omitempty"`
-	Signatures    []SignatureMatch      `json:"signatures,omitempty"`
+	SchemaVersion      int                      `json:"schema_version"`
+	CaseID             string                   `json:"case_id,omitempty"`
+	Sample             FileMetadata             `json:"sample"`
+	Functions          []Function               `json:"functions,omitempty"`
+	Symbols            []SearchEntry            `json:"symbols,omitempty"`
+	Types              []InferredType           `json:"types,omitempty"`
+	Structs            []StructCandidate        `json:"structs,omitempty"`
+	Labels             []SearchEntry            `json:"labels,omitempty"`
+	Comments           []SearchEntry            `json:"comments,omitempty"`
+	Xrefs              []Xref                   `json:"xrefs,omitempty"`
+	Graph              GraphAnalysis            `json:"graph"`
+	Fingerprints       []FunctionFingerprint    `json:"fingerprints,omitempty"`
+	Signatures         []SignatureMatch         `json:"signatures,omitempty"`
+	FunctionTags       []FunctionTag            `json:"function_tags,omitempty"`
+	Annotations        []REAnnotation           `json:"annotations,omitempty"`
+	JumpTables         []JumpTableCandidate     `json:"jump_tables,omitempty"`
+	APICallSites       []APICallSite            `json:"api_call_sites,omitempty"`
+	StringRefs         []StringReference        `json:"string_references,omitempty"`
+	StackFrames        []StackFrameLayout       `json:"stack_frames,omitempty"`
+	BlockNotes         []BasicBlockNote         `json:"basic_block_notes,omitempty"`
+	DecompilerHints    []DecompilerHint         `json:"decompiler_hints,omitempty"`
+	FunctionClusters   []FunctionCluster        `json:"function_clusters,omitempty"`
+	HotPaths           []HotPath                `json:"hot_paths,omitempty"`
+	PatchPoints        []PatchPoint             `json:"patch_points,omitempty"`
+	CallingConventions []CallingConventionGuess `json:"calling_conventions,omitempty"`
+	UnpackingHints     []UnpackingHint          `json:"unpacking_hints,omitempty"`
+	TypeHints          []TypePropagationHint    `json:"type_hints,omitempty"`
+	Timeline           []AnalysisTimelineEvent  `json:"timeline,omitempty"`
+	CapabilityMatrix   []CapabilityMatrixEntry  `json:"capability_matrix,omitempty"`
+	AntiAnalysis       []IndicatorHit           `json:"anti_analysis,omitempty"`
+	CryptoIndicators   []IndicatorHit           `json:"crypto_indicators,omitempty"`
+	Persistence        []IndicatorHit           `json:"persistence_indicators,omitempty"`
+	SyscallIndicators  []IndicatorHit           `json:"syscall_indicators,omitempty"`
 }
 
 type DeepAnalysis struct {
-	MemoryMap          []MemoryRegion        `json:"memory_map,omitempty"`
-	BytePatterns       []BytePattern         `json:"byte_patterns,omitempty"`
-	InstructionStats   InstructionStats      `json:"instruction_stats"`
-	ControlFlowMetrics ControlFlowMetrics    `json:"control_flow_metrics"`
-	APISurface         []APISurfaceEntry     `json:"api_surface,omitempty"`
-	IOCs               IOCSummary            `json:"iocs"`
-	TriageTasks        []TriageTask          `json:"triage_tasks,omitempty"`
-	DetectionRules     []DetectionRule       `json:"detection_rules,omitempty"`
-	SearchIndex        []SearchEntry         `json:"search_index,omitempty"`
-	Hex                HexAnalysis           `json:"hex"`
-	DataFlow           DataFlowAnalysis      `json:"data_flow"`
-	Graph              GraphAnalysis         `json:"graph"`
-	Fingerprints       []FunctionFingerprint `json:"fingerprints,omitempty"`
-	Signatures         []SignatureMatch      `json:"signatures,omitempty"`
-	Project            ProjectDatabase       `json:"project"`
+	MemoryMap          []MemoryRegion           `json:"memory_map,omitempty"`
+	BytePatterns       []BytePattern            `json:"byte_patterns,omitempty"`
+	InstructionStats   InstructionStats         `json:"instruction_stats"`
+	ControlFlowMetrics ControlFlowMetrics       `json:"control_flow_metrics"`
+	APISurface         []APISurfaceEntry        `json:"api_surface,omitempty"`
+	IOCs               IOCSummary               `json:"iocs"`
+	TriageTasks        []TriageTask             `json:"triage_tasks,omitempty"`
+	DetectionRules     []DetectionRule          `json:"detection_rules,omitempty"`
+	SearchIndex        []SearchEntry            `json:"search_index,omitempty"`
+	Hex                HexAnalysis              `json:"hex"`
+	DataFlow           DataFlowAnalysis         `json:"data_flow"`
+	Graph              GraphAnalysis            `json:"graph"`
+	Fingerprints       []FunctionFingerprint    `json:"fingerprints,omitempty"`
+	Signatures         []SignatureMatch         `json:"signatures,omitempty"`
+	FunctionTags       []FunctionTag            `json:"function_tags,omitempty"`
+	Annotations        []REAnnotation           `json:"annotations,omitempty"`
+	JumpTables         []JumpTableCandidate     `json:"jump_tables,omitempty"`
+	APICallSites       []APICallSite            `json:"api_call_sites,omitempty"`
+	StringRefs         []StringReference        `json:"string_references,omitempty"`
+	StackFrames        []StackFrameLayout       `json:"stack_frames,omitempty"`
+	BlockNotes         []BasicBlockNote         `json:"basic_block_notes,omitempty"`
+	DecompilerHints    []DecompilerHint         `json:"decompiler_hints,omitempty"`
+	FunctionClusters   []FunctionCluster        `json:"function_clusters,omitempty"`
+	HotPaths           []HotPath                `json:"hot_paths,omitempty"`
+	PatchPoints        []PatchPoint             `json:"patch_points,omitempty"`
+	CallingConventions []CallingConventionGuess `json:"calling_conventions,omitempty"`
+	UnpackingHints     []UnpackingHint          `json:"unpacking_hints,omitempty"`
+	TypeHints          []TypePropagationHint    `json:"type_hints,omitempty"`
+	Timeline           []AnalysisTimelineEvent  `json:"timeline,omitempty"`
+	CapabilityMatrix   []CapabilityMatrixEntry  `json:"capability_matrix,omitempty"`
+	AntiAnalysis       []IndicatorHit           `json:"anti_analysis,omitempty"`
+	CryptoIndicators   []IndicatorHit           `json:"crypto_indicators,omitempty"`
+	Persistence        []IndicatorHit           `json:"persistence_indicators,omitempty"`
+	SyscallIndicators  []IndicatorHit           `json:"syscall_indicators,omitempty"`
+	Project            ProjectDatabase          `json:"project"`
 }
 
 type BasicBlock struct {

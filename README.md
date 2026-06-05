@@ -13,9 +13,10 @@ The project is designed for defensive reverse engineering, malware triage, explo
 - String extraction for UTF-8-compatible and UTF-16LE strings with automatic categorization.
 - Entropy analysis, byte histogram, high-entropy region detection, and section maps.
 - x86/x64 entry-point disassembly, CFG generation, function recovery, call graph, and pseudocode output.
-- Reverse-engineering inference for variables, types, structures, xrefs, function metrics, and recovered C-like source.
+- Reverse-engineering inference for variables, types, structures, xrefs, function metrics, auto annotations, function tags, jump-table candidates, API call sites, string references, stack frames, basic-block notes, decompiler hints, function clusters, hot paths, patch points, calling-convention guesses, unpacking hints, propagated type hints, analysis timelines, capability scoring, anti-analysis indicators, crypto indicators, persistence indicators, syscall hints, and recovered C-like source.
 - Vulnerability-oriented static heuristics for unsafe APIs, memory permissions, missing mitigations, packed code, UAF/OOB/BOF review surfaces, taint surfaces, and audit-priority functions.
-- Deep-analysis database with memory map, API surface, IOC rollup, detection rules, search index, def-use chains, taint traces, graph analysis, hex bookmarks, and project state.
+- Deep-analysis database with memory map, API surface, IOC rollup, detection rules, search index, def-use chains, taint traces, graph analysis, hex bookmarks, RE workspace annotations, call-site/reference maps, indicator families, capability matrices, and project state.
+- RE-tool export helpers for labels, comments, bookmarks, and command scripts targeting map-file, radare2/Rizin, Ghidra-oriented TSV, and IDA IDC workflows.
 - React/Vite web workbench served locally with `--serve`.
 - JSON, CSV, Markdown, DOT, text, C-like source, YARA-like, and STIX-lite outputs.
 
