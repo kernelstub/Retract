@@ -2,7 +2,7 @@
 
 The project is designed for defensive reverse engineering, malware triage, exploitability review, and binary metadata inspection.
 
-<img width="2098" height="1258" alt="image" src="https://github.com/user-attachments/assets/2b722ea5-24d2-4363-ab74-64b043aaaf69" />
+<img width="1640" height="856" alt="image" src="https://github.com/user-attachments/assets/9a9bdb22-7ded-485f-9c54-ad6600125299" />
 
 
 ## Features
